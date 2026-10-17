@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gang Roster</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b0b0f;color:#f5f5f5;font-family:Arial,sans-serif}
+header{padding:28px 18px;background:linear-gradient(135deg,#260d12,#101015);border-bottom:1px solid #482027}
+.wrap{max-width:850px;margin:auto;padding:20px}
+.logo{color:#ff4655;font-size:13px;font-weight:bold;letter-spacing:3px}
+h1{margin:10px 0;font-size:32px}
+.sub{color:#aaa;font-size:14px}
+input{width:100%;padding:14px;background:#17171d;border:1px solid #34343d;border-radius:10px;color:white;font-size:16px;margin:8px 0 20px}
+#status{color:#aaa;font-size:14px;margin-bottom:14px}
+.member{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px;margin-bottom:10px;background:#15151b;border:1px solid #292931;border-radius:12px}
+.name{font-weight:bold;overflow-wrap:anywhere}
+.rank{color:#ff6570;font-size:12px;border:1px solid #633039;border-radius:20px;padding:6px 10px;white-space:nowrap}
+footer{text-align:center;color:#666;font-size:12px;padding:28px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<div class="logo">FIVEM ROLEPLAY</div>
+<h1 id="gang">GANG ROSTER</h1>
+<div class="sub">Official Member List</div>
+</div></header>
+<main class="wrap">
+<input id="search" placeholder="ค้นหาชื่อสมาชิก..." aria-label="ค้นหาสมาชิก">
+<div id="status">กำลังโหลดรายชื่อ...</div>
+<div id="members"></div>
+</main>
+<footer>MEMBER DIRECTORY · READ ONLY</footer>
+<script>
+const SUPABASE_URL = "ใส่_PROJECT_URL_ที่นี่";
+const SUPABASE_KEY = "ใส่_PUBLISHABLE_KEY_ที่นี่";
+
+const statusBox = document.getElementById("status");
+const list = document.getElementById("members");
+const search = document.getElementById("search");
+let members = [];
+
+function render(){
+  const q = search.value.trim().toLowerCase();
+  const filtered = members.filter(m =>
+    String(m.game_name || "").toLowerCase().includes(q) ||
+    String(m.rank || "").toLowerCase().includes(q)
+  );
+  list.replaceChildren();
+  if(!filtered.length){
+    statusBox.textContent = members.length ? "ไม่พบสมาชิกที่ค้นหา" : "ยังไม่มีรายชื่อสมาชิก";
+    return;
+  }
+  statusBox.textContent = "สมาชิกทั้งหมด " + members.length + " คน";
+  filtered.forEach(m => {
+    const card = document.createElement("div");
+    card.className = "member";
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = m.game_name;
+    const rank = document.createElement("span");
+    rank.className = "rank";
+    rank.textContent = m.rank || "Member";
+    card.append(name, rank);
+    list.append(card);
+  });
+}
+
+async function loadMembers(){
+  try{
+    if(SUPABASE_URL.includes("ใส่_") || SUPABASE_KEY.includes("ใส่_")){
+      statusBox.textContent = "กรุณาตั้งค่า Supabase URL และ Publishable key ในไฟล์ index.html";
+      return;
+    }
+    const response = await fetch(
+      SUPABASE_URL.replace(/\/$/, "") +
+      "/rest/v1/members?select=id,game_name,rank,joined_at&order=joined_at.desc",
+      {headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:"Bearer " + SUPABASE_KEY
+      }}
+    );
+    if(!response.ok) throw new Error("HTTP " + response.status);
+    members = await response.json();
+    render();
+  }catch(e){
+    statusBox.textContent = "โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบการตั้งค่า Supabase";
+  }
+}
+search.addEventListener("input", render);
+loadMembers();
+</script>
+</body>
+</html>
